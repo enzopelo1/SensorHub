@@ -1,16 +1,20 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
+import 'router.dart';
+
+// Point d'entrée de l'application : la première fonction exécutée.
 void main() {
   runApp(const MainApp());
 }
 
+// StatelessWidget = widget "figé", sans mémoire interne.
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(body: Center(child: Text('Hello World!'))),
+    return CupertinoApp.router(
+      routerConfig: router,
     );
   }
 }
