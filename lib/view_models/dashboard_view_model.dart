@@ -1,45 +1,43 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/sensor.dart';
+import '../repositories/sensor_repository.dart';
+import 'async_state.dart';
 
-// Une simple classe Dart : elle prépare les données dont l'écran a besoin.
-class DashboardViewModel {
-  // Liste privée : seule cette classe peut la modifier.
-  final List<Sensor> _sensors = const [
-    Sensor(
-      id: '1',
-      name: 'Salon',
-      type: 'Température',
-      value: 21.5,
-      unit: '°C',
-      isOnline: true,
-    ),
-    Sensor(
-      id: '2',
-      name: 'Chambre',
-      type: 'Humidité',
-      value: 48.0,
-      unit: '%',
-      isOnline: true,
-    ),
-    Sensor(
-      id: '3',
-      name: 'Garage',
-      type: 'Température',
-      value: 15.2,
-      unit: '°C',
-      isOnline: false,
-    ),
-  ];
+// "extends ChangeNotifier" : donne la capacité de notifier des observateurs
+// quand l'état change, sans dépendre de widgets ni de BuildContext.
+class DashboardViewModel extends ChangeNotifier {
+  DashboardViewModel({required SensorRepository repository})
+      : _repository = repository;
 
-  // Version lecture seule de la liste, pour que la View puisse la lire
-  // sans pouvoir y ajouter ou enlever des capteurs.
-  List<Sensor> get sensors => List.unmodifiable(_sensors);
+  final SensorRepository _repository;
 
-  // Nombre total de capteurs.
-  int get sensorCount => _sensors.length;
+  // Démarre à Loading : un chargement va suivre dès la création.
+  AsyncState<Sensor> _state = const Loading<Sensor>();
 
-  // Nombre de capteurs en ligne.
-  int get onlineCount => _sensors.where((sensor) => sensor.isOnline).length;
+  // Lecture publique uniquement : personne à l'extérieur ne peut
+  // remplacer l'état directement, seule cette classe le peut via _setState.
+  AsyncState<Sensor> get state => _state;
 
-  // Vrai si au moins un capteur est hors ligne.
-  bool get hasOfflineSensors => _sensors.any((sensor) => !sensor.isOnline);
+  // Seul endroit qui modifie _state, pour centraliser la notification.
+  void _setState(AsyncState<Sensor> value) {
+    _state = value;
+    // Prévient tous les listeners enregistrés (ex: la View) qu'il faut
+    // se rafraîchir.
+    notifyListeners();
+  }
+
+  Future<void> load() async {
+    // Repasse en Loading à chaque appel, utile si load() est rappelée
+    // pour rafraîchir (l'écran ne doit pas rester sur l'ancien état).
+    _setState(const Loading<Sensor>());
+
+    // try/catch : intercepte l'erreur au lieu de laisser planter l'app.
+    try {
+      final sensors = await _repository.fetchAll();
+      _setState(Content<Sensor>(sensors));
+    } catch (error) {
+      _setState(Failure<Sensor>(error.toString()));
+    }
+  }
 }

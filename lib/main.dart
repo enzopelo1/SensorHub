@@ -1,20 +1,27 @@
 import 'package:flutter/cupertino.dart';
 
+import 'repositories/fake_sensor_repository.dart';
 import 'router.dart';
+import 'view_models/dashboard_view_model.dart';
 
-// Point d'entrée de l'application : la première fonction exécutée.
-void main() {
-  runApp(const MainApp());
+Future<void> main() async {
+  final repository = FakeSensorRepository();
+  final viewModel = DashboardViewModel(repository: repository);
+
+  await viewModel.load();
+
+  runApp(MainApp(viewModel: viewModel));
 }
 
-// StatelessWidget = widget "figé", sans mémoire interne.
 class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+  const MainApp({super.key, required this.viewModel});
+
+  final DashboardViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
     return CupertinoApp.router(
-      routerConfig: router,
+      routerConfig: createRouter(viewModel),
     );
   }
 }
