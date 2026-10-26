@@ -74,4 +74,16 @@ class FakeSensorRepository implements SensorRepository {
 
     return _sensors;
   }
+
+  @override
+  Future<Sensor> fetchById(String id) async {
+    await Future.delayed(delay);
+
+    if (shouldThrow) throw Exception('Erreur réseau simulée');
+
+    return _sensors.firstWhere(
+      (s) => s.id == id,
+      orElse: () => throw Exception('Capteur introuvable'),
+    );
+  }
 }

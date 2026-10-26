@@ -13,11 +13,11 @@ final class Loading<T> extends AsyncState<T> {
   const Loading();
 }
 
-// Chargement réussi : on a des données.
+// Chargement réussi : on a la donnée (une liste, un capteur seul, ...).
 final class Content<T> extends AsyncState<T> {
-  const Content(this.values);
+  const Content(this.data);
 
-  final List<T> values;
+  final T data;
 }
 
 // Chargement échoué.

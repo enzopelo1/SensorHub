@@ -48,8 +48,9 @@ class SensorCard extends StatelessWidget {
                   Text('${sensor.name} (${sensor.type})'),
                   Text(
                     '${sensor.value} ${sensor.unit}',
-                    style:
-                        const TextStyle(color: CupertinoColors.secondaryLabel),
+                    style: const TextStyle(
+                      color: CupertinoColors.secondaryLabel,
+                    ),
                   ),
                 ],
               ),

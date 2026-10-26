@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
 import 'repositories/fake_sensor_repository.dart';
+import 'repositories/sensor_repository.dart';
 import 'router.dart';
 import 'view_models/dashboard_view_model.dart';
 
@@ -14,17 +15,18 @@ import 'view_models/dashboard_view_model.dart';
 const _scenario = String.fromEnvironment('SCENARIO', defaultValue: 'normal');
 
 FakeSensorRepository _buildRepository() => switch (_scenario) {
-      'retry' => FakeSensorRepository(failingCalls: {1}),
-      'demo' => FakeSensorRepository(
-          delay: const Duration(seconds: 4),
-          failingCalls: {1, 3},
-        ),
-      _ => FakeSensorRepository(),
-    };
+  'retry' => FakeSensorRepository(failingCalls: {1}),
+  'demo' => FakeSensorRepository(
+    delay: const Duration(seconds: 4),
+    failingCalls: {1, 3},
+  ),
+  _ => FakeSensorRepository(),
+};
 
 void main() {
+  final repository = _buildRepository();
   final viewModel = DashboardViewModel(
-    repository: _buildRepository(),
+    repository: repository,
     staleAfter: _scenario == 'stale'
         ? const Duration(seconds: 10)
         : const Duration(seconds: 30),
@@ -34,18 +36,19 @@ void main() {
   // donc lui-même le chargement (utile pour voir une réponse lente).
   viewModel.load();
 
-  runApp(MainApp(viewModel: viewModel));
+  runApp(MainApp(viewModel: viewModel, repository: repository));
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key, required this.viewModel});
+  const MainApp({super.key, required this.viewModel, required this.repository});
 
   final DashboardViewModel viewModel;
+  final SensorRepository repository;
 
   @override
   Widget build(BuildContext context) {
     return CupertinoApp.router(
-      routerConfig: createRouter(viewModel),
+      routerConfig: createRouter(viewModel, repository),
     );
   }
 }

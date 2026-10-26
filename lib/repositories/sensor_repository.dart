@@ -7,4 +7,7 @@ import '../models/sensor.dart';
 abstract interface class SensorRepository {
   // Asynchrone (Future) car ça pourrait prendre du temps (appel réseau).
   Future<List<Sensor>> fetchAll();
+
+  // Lance une exception si aucun capteur ne porte cet id.
+  Future<Sensor> fetchById(String id);
 }

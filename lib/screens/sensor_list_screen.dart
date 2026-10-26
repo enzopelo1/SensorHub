@@ -78,60 +78,57 @@ class _SensorListScreenState extends State<SensorListScreen> {
 
   Widget _body(BuildContext context, DashboardViewModel viewModel) {
     return switch (viewModel.state) {
-      Loading<Sensor>() => const Center(
+      Loading<List<Sensor>>() => const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CupertinoActivityIndicator(),
+            SizedBox(height: 8),
+            Text('Actualisation en cours…'),
+          ],
+        ),
+      ),
+      Content<List<Sensor>>(:final data) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              '${data.length} capteurs, '
+              '${data.where((s) => s.isOnline).length} en ligne',
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: data.length,
+              itemBuilder: (context, index) {
+                final sensor = data[index];
+                return SensorCard(
+                  sensor: sensor,
+                  // On passe uniquement l'id du capteur dans l'URL,
+                  // pas l'objet entier.
+                  onTap: () => context.push('/sensor/${sensor.id}'),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      Failure<List<Sensor>>(:final message) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CupertinoActivityIndicator(),
-              SizedBox(height: 8),
-              Text('Actualisation en cours…'),
+              Text('Erreur : $message', textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              CupertinoButton.filled(
+                onPressed: viewModel.load,
+                child: const Text('Réessayer'),
+              ),
             ],
           ),
         ),
-      Content<Sensor>(:final values) => Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                '${values.length} capteurs, '
-                '${values.where((s) => s.isOnline).length} en ligne',
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: values.length,
-                itemBuilder: (context, index) {
-                  final sensor = values[index];
-                  return SensorCard(
-                    sensor: sensor,
-                    // On passe uniquement l'id du capteur dans l'URL,
-                    // pas l'objet entier.
-                    onTap: () => context.push('/sensor/${sensor.id}'),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      Failure<Sensor>(:final message) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Erreur : $message',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                CupertinoButton.filled(
-                  onPressed: viewModel.load,
-                  child: const Text('Réessayer'),
-                ),
-              ],
-            ),
-          ),
-        ),
+      ),
     };
   }
 }
@@ -146,12 +143,11 @@ class _LastRefreshBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stale = viewModel.isStale;
+    final label = _label(viewModel.lastSuccessAt);
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Text(
-        stale
-            ? '${viewModel.lastRefreshLabel} — données anciennes'
-            : viewModel.lastRefreshLabel,
+        stale ? '$label — données anciennes' : label,
         style: TextStyle(
           fontSize: 13,
           color: stale
@@ -160,5 +156,13 @@ class _LastRefreshBanner extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Le formatage de la date appartient à la View.
+  static String _label(DateTime? at) {
+    if (at == null) return 'Aucune actualisation réussie';
+    String two(int n) => n.toString().padLeft(2, '0');
+    return 'Dernière actualisation : ${two(at.hour)}:'
+        '${two(at.minute)}:${two(at.second)}';
   }
 }

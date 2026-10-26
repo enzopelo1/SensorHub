@@ -18,6 +18,5 @@ abstract class Sensor with _$Sensor {
   }) = _Sensor;
 
   // Permet de créer un Sensor à partir de JSON (utile plus tard avec une API).
-  factory Sensor.fromJson(Map<String, dynamic> json) =>
-      _$SensorFromJson(json);
+  factory Sensor.fromJson(Map<String, dynamic> json) => _$SensorFromJson(json);
 }

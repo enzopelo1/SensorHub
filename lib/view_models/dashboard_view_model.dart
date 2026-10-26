@@ -13,8 +13,8 @@ class DashboardViewModel extends ChangeNotifier {
     // attendre réellement.
     DateTime Function()? now,
     this.staleAfter = const Duration(seconds: 30),
-  })  : _repository = repository,
-        _now = now ?? DateTime.now;
+  }) : _repository = repository,
+       _now = now ?? DateTime.now;
 
   final SensorRepository _repository;
   final DateTime Function() _now;
@@ -23,30 +23,22 @@ class DashboardViewModel extends ChangeNotifier {
   final Duration staleAfter;
 
   // Démarre à Loading : un chargement va suivre dès la création.
-  AsyncState<Sensor> _state = const Loading<Sensor>();
+  AsyncState<List<Sensor>> _state = const Loading<List<Sensor>>();
 
   // Lecture publique uniquement : personne à l'extérieur ne peut
   // remplacer l'état directement, seule cette classe le peut via _setState.
-  AsyncState<Sensor> get state => _state;
+  AsyncState<List<Sensor>> get state => _state;
 
-  // Chargement en cours (null = aucun). Garde anti-superposition : placée
-  // dans le ViewModel car c'est lui qui orchestre load() ; ainsi la règle
-  // tient quelle que soit la View, et elle est testable sans widget.
-  Future<void>? _inFlight;
+  // Garde anti-superposition : placée dans le ViewModel car c'est lui qui
+  // orchestre load() ; ainsi la règle tient quelle que soit la View, et
+  // elle est testable sans widget.
+  bool _isLoading = false;
 
-  bool get isLoading => _inFlight != null;
+  bool get isLoading => _isLoading;
 
   // Heure du dernier chargement RÉUSSI. Jamais modifiée par une erreur.
   DateTime? _lastSuccessAt;
   DateTime? get lastSuccessAt => _lastSuccessAt;
-
-  // Texte prêt à afficher : la View ne fait aucun formatage.
-  String get lastRefreshLabel {
-    final at = _lastSuccessAt;
-    if (at == null) return 'Aucune actualisation réussie';
-    return 'Dernière actualisation : ${_twoDigits(at.hour)}:'
-        '${_twoDigits(at.minute)}:${_twoDigits(at.second)}';
-  }
 
   // Bonus : true si un succès existe mais date de plus de staleAfter.
   // Dépend de l'horloge : la View doit se redessiner périodiquement.
@@ -56,36 +48,32 @@ class DashboardViewModel extends ChangeNotifier {
     return _now().difference(at) > staleAfter;
   }
 
-  static String _twoDigits(int n) => n.toString().padLeft(2, '0');
-
   // Seul endroit qui modifie _state, pour centraliser la notification.
-  void _setState(AsyncState<Sensor> value) {
+  void _setState(AsyncState<List<Sensor>> value) {
     _state = value;
     // Prévient tous les listeners enregistrés (ex: la View) qu'il faut
     // se rafraîchir.
     notifyListeners();
   }
 
-  // Si un chargement est déjà en cours, on renvoie ce même Future au lieu
-  // d'en lancer un second : les appels répétés sont ignorés.
-  Future<void> load() {
-    return _inFlight ??= _run();
-  }
+  // Si un chargement est déjà en cours, l'appel est ignoré.
+  Future<void> load() async {
+    if (_isLoading) return;
+    _isLoading = true;
 
-  Future<void> _run() async {
     // Repasse en Loading à chaque appel, utile si load() est rappelée
     // pour rafraîchir (l'écran ne doit pas rester sur l'ancien état).
-    _setState(const Loading<Sensor>());
+    _setState(const Loading<List<Sensor>>());
 
     // try/catch : intercepte l'erreur au lieu de laisser planter l'app.
     try {
       final sensors = await _repository.fetchAll();
       _lastSuccessAt = _now();
-      _inFlight = null;
-      _setState(Content<Sensor>(sensors));
+      _isLoading = false;
+      _setState(Content<List<Sensor>>(sensors));
     } catch (error) {
-      _inFlight = null;
-      _setState(Failure<Sensor>(error.toString()));
+      _isLoading = false;
+      _setState(Failure<List<Sensor>>(error.toString()));
     }
   }
 }
