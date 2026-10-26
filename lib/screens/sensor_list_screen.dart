@@ -41,7 +41,9 @@ class SensorListScreen extends StatelessWidget {
                       final sensor = values[index];
                       return SensorCard(
                         sensor: sensor,
-                        onTap: () => context.push('/sensor', extra: sensor),
+                        // On passe uniquement l'id du capteur dans l'URL,
+                        // pas l'objet entier.
+                        onTap: () => context.push('/sensor/${sensor.id}'),
                       );
                     },
                   ),
