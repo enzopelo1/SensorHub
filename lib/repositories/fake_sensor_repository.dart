@@ -12,12 +12,22 @@ class FakeSensorRepository implements SensorRepository {
   FakeSensorRepository({
     this.delay = const Duration(seconds: 1),
     this.shouldThrow = false,
+    this.failingCalls = const {},
     List<Sensor>? sensors,
   }) : _sensors = sensors ?? _defaultSensors;
 
   final Duration delay;
   final bool shouldThrow;
+
+  // Numéros d'appels (à partir de 1) qui échouent. Exemple : {1} = seul le
+  // premier chargement échoue, {1, 3} = le 1er et le 3e échouent.
+  final Set<int> failingCalls;
   final List<Sensor> _sensors;
+
+  int _loadCount = 0;
+
+  // Nombre de chargements réellement exécutés depuis la création du Fake.
+  int get loadCount => _loadCount;
 
   // Les mêmes données qui étaient avant écrites en dur dans le ViewModel.
   static const _defaultSensors = [
@@ -50,10 +60,15 @@ class FakeSensorRepository implements SensorRepository {
   // @override : on redéfinit la méthode promise par le contrat.
   @override
   Future<List<Sensor>> fetchAll() async {
+    // Compté dès le début de l'appel : sert à prouver combien de chargements
+    // ont réellement été exécutés (observation uniquement).
+    _loadCount++;
+    final callNumber = _loadCount;
+
     // Met l'exécution en pause pour simuler la latence d'un vrai appel réseau.
     await Future.delayed(delay);
 
-    if (shouldThrow) {
+    if (shouldThrow || failingCalls.contains(callNumber)) {
       throw Exception('Erreur réseau simulée');
     }
 
